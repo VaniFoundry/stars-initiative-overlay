@@ -1,0 +1,20 @@
+{
+  "id": "stars-initiative-overlay",
+  "title": "Stars Initiative Overlay",
+  "version": "1.0.0",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13"
+  },
+  "authors": [
+    {
+      "name": "Vani",
+      "discord": "vani_th",
+      "flags": {}
+    }
+  ],
+  "flags": {
+    "canUpload": true
+  },
+  "description": ""
+}
