@@ -16,5 +16,9 @@
   "flags": {
     "canUpload": true
   },
-  "description": ""
+  "description": "",
+  "esmodules": [
+    "stars-initiative-overlay.js"
+  ],
+  "socket": true
 }
