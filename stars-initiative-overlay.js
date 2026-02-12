@@ -1,8 +1,28 @@
 // ------------------------------
-// Stars Initiative Overlay (STABLE ABOVE TOKEN)
+// SETTINGS
 // ------------------------------
 
-// Crear marcador
+const MODULE_ID = "stars-initiative-overlay";
+
+Hooks.once("init", () => {
+  game.settings.register(MODULE_ID, "enabled", {
+    name: "Enable Initiative Overlay",
+    hint: "Show initiative markers above tokens.",
+    scope: "world",
+    config: false, // hidden (controlled by macro)
+    type: Boolean,
+    default: true
+  });
+});
+
+function initiativeOverlayEnabled() {
+  return game.settings.get(MODULE_ID, "enabled");
+}
+
+// ------------------------------
+// MARKER CREATION
+// ------------------------------
+
 function createInitiativeMarker(tokenCanvas, text = "?") {
   try {
     const container = new PIXI.Container();
@@ -10,6 +30,7 @@ function createInitiativeMarker(tokenCanvas, text = "?") {
     const bgTexture = PIXI.Texture.from(
       "modules/stars-initiative-overlay/img/DiceSlotIcon.webp"
     );
+
     const bgSprite = new PIXI.Sprite(bgTexture);
     bgSprite.anchor.set(0.5);
     bgSprite.scale.set(0.4);
@@ -23,64 +44,101 @@ function createInitiativeMarker(tokenCanvas, text = "?") {
       strokeThickness: 5,
       align: "center"
     });
+
     marker.anchor.set(0.5);
     container.addChild(marker);
 
     container._marker = marker;
+
     tokenCanvas.addChild(container);
 
     return container;
+
   } catch (err) {
-    console.error("❌ Error al crear marcador:", err);
+    console.error("❌ Error creating initiative marker:", err);
     return null;
   }
 }
 
-// Clamp helper
+// ------------------------------
+// HELPERS
+// ------------------------------
+
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
-// Actualizar marcadores
+function cleanTokenMarkers(tokenCanvas) {
+  if (!tokenCanvas?._initiativeMarkers) return;
+
+  tokenCanvas._initiativeMarkers.forEach(marker => {
+    if (marker?.parent) marker.parent.removeChild(marker);
+  });
+
+  tokenCanvas._initiativeMarkers = [];
+}
+
+function cleanAllMarkers() {
+  canvas.tokens.placeables.forEach(token => {
+    cleanTokenMarkers(token);
+  });
+}
+
+// ------------------------------
+// MAIN UPDATE FUNCTION
+// ------------------------------
+
 function updateTokenMarkers(tokenDoc, combat) {
-  if (!tokenDoc) return;
 
-  const tokenCanvas = tokenDoc.object;
-  if (!tokenCanvas) return;
-
-  const actor = tokenDoc.actor;
-  if (!actor) return;
-
-  const numDice = actor.system.speed_dice?.num_dice || 0;
-
-  const combatants = combat.combatants.filter(c =>
-    c.tokenId === tokenDoc.id || c.token?.id === tokenDoc.id
-  );
-
-  if (!tokenCanvas._initiativeMarkers) {
-    tokenCanvas._initiativeMarkers = [];
+  // 🚫 If disabled, wipe markers and stop
+  if (!initiativeOverlayEnabled()) {
+    if (tokenDoc?.object) cleanTokenMarkers(tokenDoc.object);
+    return;
   }
 
-  combatants.sort((a, b) => (b.initiative ?? -Infinity) - (a.initiative ?? -Infinity));
+  if (!tokenDoc || !tokenDoc.object || !tokenDoc.actor) return;
+
+  const tokenCanvas = tokenDoc.object;
+
+  // If not in combat → remove markers
+  const inCombat =
+    combat &&
+    combat.active &&
+    combat.combatants.some(c =>
+      c.tokenId === tokenDoc.id || c.token?.id === tokenDoc.id
+    );
+
+  if (!inCombat) {
+    cleanTokenMarkers(tokenCanvas);
+    return;
+  }
+
+  const actor = tokenDoc.actor;
+  const numDice = actor.system.speed_dice?.num_dice || 0;
+
+  const combatants = combat.combatants
+    .filter(c =>
+      c.tokenId === tokenDoc.id || c.token?.id === tokenDoc.id
+    )
+    .sort((a, b) => (b.initiative ?? -Infinity) - (a.initiative ?? -Infinity));
+
+  if (!tokenCanvas._initiativeMarkers)
+    tokenCanvas._initiativeMarkers = [];
 
   const centerX = tokenCanvas.w / 2;
+  const aboveTokenY = -clamp(tokenCanvas.h * 0.25 + 24, 28, 64);
 
-  // 🔑 Y controlada (proporción + límites)
-  const proportionalOffset = tokenCanvas.h * 0.25 + 24; // 25% del alto + 24 plano para compensar tokens pequeños
-  const aboveTokenY = -clamp(proportionalOffset, 28, 64);
-  // min: 28px | max: 64px
-
-  // Limpiar sobrantes
+  // Remove extra markers
   while (tokenCanvas._initiativeMarkers.length > numDice) {
     const marker = tokenCanvas._initiativeMarkers.pop();
     if (marker?.parent) marker.parent.removeChild(marker);
   }
 
-  // Crear / actualizar
   for (let i = 0; i < numDice; i++) {
+
     const combatant = combatants[i];
     const text =
-      combatant?.initiative !== null && combatant?.initiative !== undefined
+      combatant?.initiative != null
         ? Math.round(combatant.initiative).toString()
         : "?";
 
@@ -95,25 +153,23 @@ function updateTokenMarkers(tokenDoc, combat) {
     }
 
     const spacing = 70;
-    const offsetX = (i - (numDice - 1) / 2) * spacing;
-
-    marker.x = centerX + offsetX;
+    marker.x = centerX + (i - (numDice - 1) / 2) * spacing;
     marker.y = aboveTokenY;
   }
-
-  console.log(`✅ Marcadores actualizados: ${tokenDoc.name}`);
 }
 
 // ------------------------------
-// Hooks
+// HOOKS
 // ------------------------------
 
 Hooks.on("createCombatant", combatant => {
+  if (!initiativeOverlayEnabled()) return;
   if (!combatant.token) return;
   updateTokenMarkers(combatant.token, combatant.parent);
 });
 
 Hooks.on("updateCombatant", (combatant, updates) => {
+  if (!initiativeOverlayEnabled()) return;
   if (!("initiative" in updates)) return;
   if (!combatant.token) return;
   updateTokenMarkers(combatant.token, combatant.parent);
@@ -124,20 +180,26 @@ Hooks.on("deleteCombatant", combatant => {
   updateTokenMarkers(combatant.token, combatant.parent);
 });
 
-// Limpiar todo
-function cleanAllMarkers() {
-  canvas.tokens.placeables.forEach(token => {
-    const tokenCanvas = token.object;
-    if (!tokenCanvas?._initiativeMarkers) return;
+// Combat ends
+Hooks.on("updateCombat", (combat, updates) => {
+  if (updates.active === false) {
+    cleanAllMarkers();
+  }
+});
 
-    tokenCanvas._initiativeMarkers.forEach(marker => {
-      if (marker?.parent) marker.parent.removeChild(marker);
-    });
-
-    tokenCanvas._initiativeMarkers = [];
-  });
-
-  console.log("🗑 Marcadores limpiados");
-}
-
+// Combat deleted
 Hooks.on("deleteCombat", cleanAllMarkers);
+
+// Scene change
+Hooks.on("canvasReady", () => {
+  cleanAllMarkers();
+
+  if (!initiativeOverlayEnabled()) return;
+
+  const combat = game.combat;
+  if (combat?.active) {
+    canvas.tokens.placeables.forEach(token => {
+      updateTokenMarkers(token.document, combat);
+    });
+  }
+});
