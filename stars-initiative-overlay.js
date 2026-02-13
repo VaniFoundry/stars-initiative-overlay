@@ -76,7 +76,7 @@ function createInitiativeMarker(tokenCanvas, text = "?") {
     return container;
 
   } catch (err) {
-    console.error("❌ Error creating initiative marker:", err);
+    console.error("Error creating initiative marker:", err);
     return null;
   }
 }
@@ -211,19 +211,24 @@ Hooks.on("deleteCombatant", combatant => {
 // RESET ON NEW ROUND
 // ------------------------------
 
-Hooks.on("updateCombat", (combat, updates) => {
+Hooks.on("updateCombat", async (combat, updates) => {
 
-  // Reset dice visuals only on NEW ROUND
+  // 🔹 NEW ROUND
   if ("round" in updates) {
-    canvas.tokens.placeables.forEach(token => {
-      const markers = token._initiativeMarkers;
-      if (!markers) return;
 
+    for (const token of canvas.tokens.placeables) {
+      const markers = token._initiativeMarkers;
+      if (!markers) continue;
+
+      // Reset all dice visuals
       markers.forEach(marker => {
         marker._isActive = false;
         marker._bgSprite.texture = marker._baseTexture;
       });
-    });
+
+      // 🔹 Clear stored dice states so they redraw as unclicked
+      await token.document.setFlag(MODULE_ID, "diceStates", markers.map(() => false));
+    }
   }
 
   if (updates.active === false) {
@@ -234,7 +239,7 @@ Hooks.on("updateCombat", (combat, updates) => {
 Hooks.on("deleteCombat", cleanAllMarkers);
 
 // ------------------------------
-// GLOBAL CLICK HANDLER (persistent across scenes/reload)
+// GLOBAL CLICK HANDLER 
 // ------------------------------
 
 Hooks.on("canvasReady", () => {
