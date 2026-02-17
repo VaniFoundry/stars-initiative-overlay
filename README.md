@@ -21,7 +21,7 @@ A Foundry VTT module that adds visual initiative dice markers above tokens durin
 
         > Note: If a colorblind mode is not an option at the moment you can swap de resources in the `img` file to your liking
 
-![Speed Dice Example](speedice2.png)
+![Color Speed Dice Example](speedice2.png)
 
 - **Automatic Reset**: All dice reset to the default state at the start of each new round
 - **Combat Integration**: Markers appear automatically when combat starts and disappear when it ends
@@ -47,6 +47,13 @@ States persist throughout the round and reset automatically when a new round beg
    - `DiceSlotIcon2.webp`
    - `DiceSlotIcon3.webp`
 3. Enable the module in Foundry's module management screen
+
+## Compatibility
+
+| Foundry Version | Status |
+|---|---|
+| v13 | ✅ Verified |
+| v11 | ✅ Supported |
 
 ## Changelog
 
