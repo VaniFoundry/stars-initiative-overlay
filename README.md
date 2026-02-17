@@ -1,6 +1,6 @@
 # Stars Initiative Overlay
 
-
+**Manifest URL:** `https://raw.githubusercontent.com/VaniFoundry/stars-initiative-overlay/main/module.json`
 
 **Designed with [Stars of the City](https://github.com/tsu-b-asa/sotc) in mind** - a Project Moon inspired TTRPG by Jakkafang & community.
 
