@@ -35,11 +35,8 @@ When a token enters combat, the module displays dice markers above it based on t
 
 ### Cycling Dice States
 
-Click any dice marker to cycle through the three visual states:
-
-<img> </img>
-
-
+Click any dice marker to cycle through the three visual states.
+Everyone have default permission to interact with every dice.
 States persist throughout the round and reset automatically when a new round begins.
 
 ## Installation
@@ -50,3 +47,7 @@ States persist throughout the round and reset automatically when a new round beg
    - `DiceSlotIcon2.webp`
    - `DiceSlotIcon3.webp`
 3. Enable the module in Foundry's module management screen
+
+## Changelog
+
+NOTE: Will be edited after v1.1.0 for major changes or updates
