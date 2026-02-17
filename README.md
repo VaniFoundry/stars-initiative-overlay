@@ -48,6 +48,8 @@ States persist throughout the round and reset automatically when a new round beg
    - `DiceSlotIcon3.webp`
 3. Enable the module in Foundry's module management screen
 
+Or install directly via Foundry using the [manifest URL](https://raw.githubusercontent.com/VaniFoundry/stars-initiative-overlay/main/module.json).
+
 ## Compatibility
 
 | Foundry Version | Status |
