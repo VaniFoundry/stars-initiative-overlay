@@ -8,6 +8,26 @@ Hooks.once("init", () => {
     type: Boolean,
     default: true
   });
+
+  game.settings.register(MODULE_ID, "verticalOffset", {
+    name: "Speed Dice Vertical Offset",
+    hint: "Move the speed dice up (negative) or down (positive) in pixels. Useful if another module's bar overlaps the dice.",
+    scope: "world",
+    config: true,
+    type: Number,
+    range: {
+      min: -300,
+      max: 300,
+      step: 5
+    },
+    default: 0,
+    onChange: () => {
+      const combat = game.combat;
+      if (combat?.active) {
+        canvas.tokens.placeables.forEach(t => renderTokenMarkers(t.document, combat));
+      }
+    }
+  });
 });
 
 function initiativeOverlayEnabled() {
@@ -92,12 +112,19 @@ function renderTokenMarkers(tokenDoc, combat) {
   const actor = tokenDoc.actor;
   if (!actor) return;
 
-  const numDice = actor.system.speed_dice?.num_dice || 0;
-  const states = getDiceStates(tokenDoc);
-
+  // Only render dice for tokens that are actually in this combat
   const combatants = combat.combatants
     .filter(c => c.tokenId === tokenDoc.id)
     .sort((a, b) => (b.initiative ?? -Infinity) - (a.initiative ?? -Infinity));
+
+  if (combatants.length === 0) {
+    cleanTokenMarkers(tokenCanvas);
+    tokenCanvas._initiativeMarkers = [];
+    return;
+  }
+
+  const numDice = actor.system.speed_dice?.num_dice || 0;
+  const states = getDiceStates(tokenDoc);
 
   cleanTokenMarkers(tokenCanvas);
   tokenCanvas._initiativeMarkers = [];
@@ -112,8 +139,9 @@ function renderTokenMarkers(tokenDoc, combat) {
     const marker = createMarker(tokenCanvas, text, state);
 
     const spacing = 70;
+    const verticalOffset = game.settings.get(MODULE_ID, "verticalOffset");
     marker.x = tokenCanvas.w / 2 + (i - (numDice - 1) / 2) * spacing;
-    marker.y = -40;
+    marker.y = -40 + verticalOffset;
 
     tokenCanvas._initiativeMarkers.push(marker);
   }
@@ -126,9 +154,12 @@ function renderTokenMarkers(tokenDoc, combat) {
 Hooks.on("canvasReady", () => {
   const combat = game.combat;
   if (combat?.active) {
-    canvas.tokens.placeables.forEach(t =>
-      renderTokenMarkers(t.document, combat)
-    );
+    const combatantTokenIds = new Set(combat.combatants.map(c => c.tokenId));
+    canvas.tokens.placeables.forEach(t => {
+      if (combatantTokenIds.has(t.id)) {
+        renderTokenMarkers(t.document, combat);
+      }
+    });
   }
 });
 
@@ -139,6 +170,11 @@ Hooks.on("createCombatant", c => {
 Hooks.on("updateCombatant", (c, updates) => {
   if (!("initiative" in updates)) return;
   renderTokenMarkers(c.token, c.parent);
+});
+
+Hooks.on("deleteCombatant", c => {
+  const tokenCanvas = c.token?.object;
+  if (tokenCanvas) cleanTokenMarkers(tokenCanvas);
 });
 
 Hooks.on("deleteCombat", cleanAllMarkers);
