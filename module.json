@@ -22,5 +22,5 @@
   ],
   "socket": true,
   "manifest": "https://raw.githubusercontent.com/VaniFoundry/stars-initiative-overlay/main/module.json",
-  "download": "https://github.com/VaniFoundry/stars-initiative-overlay/releases/download/v1.1.0/stars-initiative-overlay.zip"
+  "download": "https://github.com/VaniFoundry/stars-initiative-overlay/releases/download/v1.1.1/stars-initiative-overlay.zip"
 }
